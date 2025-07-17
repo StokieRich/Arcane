@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Deck Probability Tool</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel&family=Uncial+Antiqua&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Cinzel', serif;
@@ -15,7 +16,7 @@
     .container {
       max-width: 480px;
       margin: auto;
-      background: rgba(20, 20, 20, 0.8);
+      background: rgba(20, 20, 20, 0.85);
       border-radius: 12px;
       padding: 1rem;
       box-shadow: 0 0 12px #000;
@@ -24,16 +25,25 @@
       font-family: 'Uncial Antiqua', serif;
       text-align: center;
       color: #dcd2c5;
+      margin-bottom: 0.5rem;
+    }
+    h2.subheading {
+      font-family: 'Cinzel', serif;
+      font-size: 1rem;
+      text-align: center;
+      color: #c0b9ac;
+      margin-top: 0;
+      margin-bottom: 1.5rem;
     }
     label, select, input, button {
       width: 100%;
-      font-size: 1rem;
-      margin: 0.5rem 0;
+      font-size: 1.1rem;
+      margin: 0.6rem 0;
     }
     button {
       background: #5a412a;
       color: #eee;
-      padding: 0.8rem;
+      padding: 0.9rem;
       border: none;
       border-radius: 6px;
       box-shadow: 0 2px 6px #000;
@@ -44,16 +54,24 @@
     .result {
       margin-top: 1rem;
       font-weight: bold;
+      white-space: pre-line;
+    }
+    canvas {
+      width: 100% !important;
+      height: auto !important;
+      margin-top: 1rem;
     }
     @media (max-width: 500px) {
       body { padding: 0.5rem; }
-      label, select, input, button { font-size: 1.1rem; }
+      label, select, input, button { font-size: 1.2rem; margin: 0.8rem 0; }
+      button { padding: 1rem; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Deck Probability Calculator</h1>
+    <h2 class="subheading">Calculate your odds with Arcane clarity!</h2>
 
     <label for="arcane">Arcane (cards drawn):</label>
     <input type="number" id="arcane" min="0" max="10" value="3">
@@ -87,7 +105,7 @@
     <button onclick="calculateProbability()">Calculate</button>
 
     <div class="result" id="result"></div>
-    <canvas id="probabilityChart" width="400" height="300"></canvas>
+    <canvas id="probabilityChart"></canvas>
   </div>
 
   <script>
@@ -125,16 +143,16 @@
       const targetColors = getSelected(document.getElementById('targetColor'), ['Blue', 'Green', 'Pink']);
       const targetNumbers = getSelected(document.getElementById('targetNumber'), ['1', '2', '3']);
 
-      const thresholds = ['1', '2', '3'];
       const results = [];
+      const labels = [];
 
-      thresholds.forEach(threshold => {
+      targetNumbers.sort().forEach(value => {
         let matchCount = 0;
         deck.forEach(card => {
-          const numberOK = parseInt(card.number) >= parseInt(threshold);
-          const colorMatch = targetColors.includes(card.color);
-          const numberMatch = targetNumbers.includes(card.number);
-          if (!isNaN(card.number) && numberOK && colorMatch && numberMatch) {
+          const cardNumber = parseInt(card.number);
+          const cardColorMatch = targetColors.includes(card.color);
+          const numberMatch = value === '1' ? cardNumber >= 1 : cardNumber === parseInt(value);
+          if (!isNaN(cardNumber) && cardColorMatch && numberMatch) {
             matchCount += card.count;
           }
         });
@@ -144,28 +162,35 @@
         const noMatchComb = combination(nonMatchCount, drawCount);
         const totalComb = combination(totalCards, drawCount);
         const atLeastOneProb = 1 - (noMatchComb / totalComb);
+
+        const label = value === '1' ? 'Value 1+' : `Exactly ${value}`;
         results.push((atLeastOneProb * 100).toFixed(2));
+        labels.push(label);
       });
 
       document.getElementById('result').innerText =
-        drawCount > 0 ? `Chance of value 1+: ${results[0]}%\nValue 2+: ${results[1]}%\nValue 3+: ${results[2]}%` : 'Invalid number of cards drawn.';
+        drawCount > 0 ? labels.map((label, i) => `${label}: ${results[i]}%`).join('\n') : 'Invalid number of cards drawn.';
 
       const ctx = document.getElementById('probabilityChart').getContext('2d');
       if (window.chartInstance) window.chartInstance.destroy();
       window.chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['Value 1+', 'Value 2+', 'Value 3+'],
+          labels: labels,
           datasets: [{
             label: 'Probability (%)',
             data: results,
-            backgroundColor: ['#7b9acc', '#a56cc1', '#ffba6a']
+            backgroundColor: ['#a7c4f2', '#c09be3', '#ffd7a6']
           }]
         },
         options: {
           responsive: true,
           scales: {
             y: { beginAtZero: true, max: 100 }
+          },
+          animation: {
+            duration: 1000,
+            easing: 'easeOutQuart'
           }
         }
       });
