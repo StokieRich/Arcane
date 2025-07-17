@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Deck Probability Tool</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Cinzel', serif;
+      background: url('A_digital_painting_depicts_an_enchanted_forest_at_.png') no-repeat center/cover;
+      color: #f4eee1;
+      margin: 0;
+      padding: 1rem;
+    }
+    .container {
+      max-width: 480px;
+      margin: auto;
+      background: rgba(20, 20, 20, 0.8);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 0 12px #000;
+    }
+    h1 {
+      font-family: 'Uncial Antiqua', serif;
+      text-align: center;
+      color: #dcd2c5;
+    }
+    label, select, input, button {
+      width: 100%;
+      font-size: 1rem;
+      margin: 0.5rem 0;
+    }
+    button {
+      background: #5a412a;
+      color: #eee;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px #000;
+    }
+    button:hover {
+      background: #6b543a;
+    }
+    .result {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    @media (max-width: 500px) {
+      body { padding: 0.5rem; }
+      label, select, input, button { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Deck Probability Calculator</h1>
+
+    <label for="arcane">Arcane (cards drawn):</label>
+    <input type="number" id="arcane" min="0" max="10" value="3">
+
+    <label for="evade">Evade modifier (-2 to +2):</label>
+    <select id="evade">
+      <option value="-2">-2</option>
+      <option value="-1">-1</option>
+      <option value="0" selected>0</option>
+      <option value="1">+1</option>
+      <option value="2">+2</option>
+    </select>
+
+    <label for="targetNumber">Target Number(s):</label>
+    <select id="targetNumber" multiple size="4">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>
+    <small>(Hold Ctrl or Cmd to select multiple)</small>
+
+    <label for="targetColor">Target Colour(s):</label>
+    <select id="targetColor" multiple size="4">
+      <option value="Any">Any</option>
+      <option value="Blue">Blue</option>
+      <option value="Green">Green</option>
+      <option value="Pink">Pink</option>
+    </select>
+    <small>(Hold Ctrl or Cmd to select multiple)</small>
+
+    <button onclick="calculateProbability()">Calculate</button>
+
+    <div class="result" id="result"></div>
+    <canvas id="probabilityChart" width="400" height="300"></canvas>
+  </div>
+
+  <script>
+    const deck = [
+      { color: 'Blue', number: '1', count: 3 },
+      { color: 'Blue', number: '2', count: 2 },
+      { color: 'Blue', number: '3', count: 1 },
+      { color: 'Green', number: '1', count: 3 },
+      { color: 'Green', number: '2', count: 2 },
+      { color: 'Green', number: '3', count: 1 },
+      { color: 'Pink', number: '1', count: 3 },
+      { color: 'Pink', number: '2', count: 2 },
+      { color: 'Pink', number: '3', count: 1 },
+      { color: 'Any', number: 'Catastrophe', count: 3 },
+    ];
+
+    function factorial(n) {
+      return n <= 1 ? 1 : n * factorial(n - 1);
+    }
+
+    function combination(n, k) {
+      if (k > n || k < 0) return 0;
+      return factorial(n) / (factorial(k) * factorial(n - k));
+    }
+
+    function getSelected(selectElement, fallback = []) {
+      const selected = Array.from(selectElement.selectedOptions).map(opt => opt.value);
+      return selected.includes('Any') ? fallback : selected;
+    }
+
+    function calculateProbability() {
+      const arcane = parseInt(document.getElementById('arcane').value);
+      const evade = parseInt(document.getElementById('evade').value);
+      const drawCount = arcane + evade;
+      const targetColors = getSelected(document.getElementById('targetColor'), ['Blue', 'Green', 'Pink']);
+      const targetNumbers = getSelected(document.getElementById('targetNumber'), ['1', '2', '3']);
+
+      const thresholds = ['1', '2', '3'];
+      const results = [];
+
+      thresholds.forEach(threshold => {
+        let matchCount = 0;
+        deck.forEach(card => {
+          const numberOK = parseInt(card.number) >= parseInt(threshold);
+          const colorMatch = targetColors.includes(card.color);
+          const numberMatch = targetNumbers.includes(card.number);
+          if (!isNaN(card.number) && numberOK && colorMatch && numberMatch) {
+            matchCount += card.count;
+          }
+        });
+
+        const totalCards = deck.reduce((sum, card) => sum + card.count, 0);
+        const nonMatchCount = totalCards - matchCount;
+        const noMatchComb = combination(nonMatchCount, drawCount);
+        const totalComb = combination(totalCards, drawCount);
+        const atLeastOneProb = 1 - (noMatchComb / totalComb);
+        results.push((atLeastOneProb * 100).toFixed(2));
+      });
+
+      document.getElementById('result').innerText =
+        drawCount > 0 ? `Chance of value 1+: ${results[0]}%\nValue 2+: ${results[1]}%\nValue 3+: ${results[2]}%` : 'Invalid number of cards drawn.';
+
+      const ctx = document.getElementById('probabilityChart').getContext('2d');
+      if (window.chartInstance) window.chartInstance.destroy();
+      window.chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Value 1+', 'Value 2+', 'Value 3+'],
+          datasets: [{
+            label: 'Probability (%)',
+            data: results,
+            backgroundColor: ['#7b9acc', '#a56cc1', '#ffba6a']
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: { beginAtZero: true, max: 100 }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>
