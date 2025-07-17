@@ -3,17 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <title>Deck Probability Tool</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel&family=Uncial+Antiqua&display=swap" rel="stylesheet">
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     body {
       font-family: 'Cinzel', serif;
       background: url('A_digital_painting_depicts_an_enchanted_forest_at_.png') no-repeat center/cover;
       color: #f4eee1;
-      margin: 0;
       padding: 1rem;
+      display: flex;
+      flex-direction: column;
     }
     .container {
+      flex-grow: 1;
       max-width: 480px;
       margin: auto;
       background: rgba(20, 20, 20, 0.85);
@@ -56,11 +62,6 @@
       font-weight: bold;
       white-space: pre-line;
     }
-    canvas {
-      width: 100% !important;
-      height: auto !important;
-      margin-top: 1rem;
-    }
     @media (max-width: 500px) {
       body { padding: 0.5rem; }
       label, select, input, button { font-size: 1.2rem; margin: 0.8rem 0; }
@@ -91,7 +92,6 @@
       <option value="2">2</option>
       <option value="3">3</option>
     </select>
-    <small>(Hold Ctrl or Cmd to select multiple)</small>
 
     <label for="targetColor">Target Colour(s):</label>
     <select id="targetColor" multiple size="4">
@@ -100,12 +100,10 @@
       <option value="Green">Green</option>
       <option value="Pink">Pink</option>
     </select>
-    <small>(Hold Ctrl or Cmd to select multiple)</small>
 
     <button onclick="calculateProbability()">Calculate</button>
 
     <div class="result" id="result"></div>
-    <canvas id="probabilityChart"></canvas>
   </div>
 
   <script>
@@ -170,30 +168,6 @@
 
       document.getElementById('result').innerText =
         drawCount > 0 ? labels.map((label, i) => `${label}: ${results[i]}%`).join('\n') : 'Invalid number of cards drawn.';
-
-      const ctx = document.getElementById('probabilityChart').getContext('2d');
-      if (window.chartInstance) window.chartInstance.destroy();
-      window.chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Probability (%)',
-            data: results,
-            backgroundColor: ['#a7c4f2', '#c09be3', '#ffd7a6']
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            y: { beginAtZero: true, max: 100 }
-          },
-          animation: {
-            duration: 1000,
-            easing: 'easeOutQuart'
-          }
-        }
-      });
     }
   </script>
 </body>
